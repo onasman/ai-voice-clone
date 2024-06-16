@@ -1,9 +1,8 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { getTableColumns } from "drizzle-orm";
 import {
-  getServerSession,
   type DefaultSession,
   type NextAuthOptions,
+  getServerSession,
 } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
@@ -67,8 +66,10 @@ export const authOptions: NextAuthOptions = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
+  pages: {
+    signIn: "/login",
+  },
 };
-
 /**
  * Wrapper for `getServerSession` so that you don't need to import the `authOptions` in every file.
  *
