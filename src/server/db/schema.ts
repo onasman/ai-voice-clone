@@ -2,50 +2,19 @@ import { relations, sql } from "drizzle-orm";
 import {
   index,
   integer,
-  pgTableCreator,
+  pgTable,
   primaryKey,
-  serial,
   text,
   timestamp,
   varchar,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { type AdapterAccount } from "next-auth/adapters";
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
-export const createTable = pgTableCreator((name) => `ai-voice-cloning_${name}`);
-
-export const posts = createTable(
-  "post",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 256 }),
-    createdById: varchar("createdById", { length: 255 })
-      .notNull()
-      .references(() => users.id),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp("updatedAt", { withTimezone: true }),
-  },
-  (example) => ({
-    createdByIdIdx: index("createdById_idx").on(example.createdById),
-    nameIndex: index("name_idx").on(example.name),
-  })
-);
-
-export const users = createTable("user", {
-  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+export const users = pgTable("user", {
+  id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull(),
-  emailVerified: timestamp("emailVerified", {
-    mode: "date",
-    withTimezone: true,
-  }).default(sql`CURRENT_TIMESTAMP`),
   image: varchar("image", { length: 255 }),
 });
 
@@ -53,10 +22,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
 }));
 
-export const accounts = createTable(
+export const accounts = pgTable(
   "account",
   {
-    userId: varchar("userId", { length: 255 })
+    userId: uuid("userId")
       .notNull()
       .references(() => users.id),
     type: varchar("type", { length: 255 })
@@ -77,20 +46,20 @@ export const accounts = createTable(
       columns: [account.provider, account.providerAccountId],
     }),
     userIdIdx: index("account_userId_idx").on(account.userId),
-  })
+  }),
 );
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
-export const sessions = createTable(
+export const sessions = pgTable(
   "session",
   {
     sessionToken: varchar("sessionToken", { length: 255 })
       .notNull()
       .primaryKey(),
-    userId: varchar("userId", { length: 255 })
+    userId: uuid("userId")
       .notNull()
       .references(() => users.id),
     expires: timestamp("expires", {
@@ -100,24 +69,9 @@ export const sessions = createTable(
   },
   (session) => ({
     userIdIdx: index("session_userId_idx").on(session.userId),
-  })
+  }),
 );
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
-
-export const verificationTokens = createTable(
-  "verificationToken",
-  {
-    identifier: varchar("identifier", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
-    expires: timestamp("expires", {
-      mode: "date",
-      withTimezone: true,
-    }).notNull(),
-  },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
-  })
-);
